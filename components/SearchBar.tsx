@@ -1,12 +1,35 @@
 "use client";
-import { KeyboardEvent } from "react";
+import useBusinessList from "@/app/hooks/useBusinessList";
+import useCurrentLocation from "@/app/hooks/useCurrentLocation";
+import { Result } from "@/types";
+import axios from "axios";
+import { KeyboardEvent, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 
 const SearchBar = () => {
+  const [searchtext, setSearchtext] = useState("");
+  const currentLocation = useCurrentLocation();
+  const businessList = useBusinessList();
+
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       const target = e.target as HTMLInputElement;
       console.log(target.value);
+      axios
+        .get("/api/search", {
+          params: {
+            searchtext: target.value,
+            lat: currentLocation.location?.lat,
+            lng: currentLocation.location?.lng,
+          },
+        })
+        .then((response) => {
+          console.log(response);
+          const searchedPlaces = response.data.candidates as Result[];
+          if (searchedPlaces.length > 0) {
+            businessList.setBusinessList(searchedPlaces);
+          }
+        });
     }
   };
 

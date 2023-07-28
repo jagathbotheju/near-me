@@ -7,35 +7,69 @@ import axios from "axios";
 import { Result } from "../types";
 import useCategory from "@/app/hooks/useCategory";
 import { PuffLoader } from "react-spinners";
+import Shimmer from "./Shimmer";
+import useBusinessList from "@/app/hooks/useBusinessList";
+import useSelectedBusiness from "@/app/hooks/useSelectedBusiness";
+import useCurrentLocation from "@/app/hooks/useCurrentLocation";
+
+interface Location {
+  lat: number;
+  lng: number;
+}
 
 const BusinessList = () => {
+  const currentLocation = useCurrentLocation();
   const categoryStore = useCategory();
+  const businessListStore = useBusinessList();
+  const selectedBusinessStore = useSelectedBusiness();
   const category = categoryStore.category;
   const [placeCount, setPlaceCount] = useState(4);
   const [businessList, setBusinessList] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
+  //const [location, setLocation] = useState<Location | null>(null);
 
-  const getBusinessPlaces = async () => {
+  const getBusinessPlaces = async (location: Location) => {
     setLoading(true);
     await axios
       .get("/api/nearby-places", {
         params: {
           category: `${category}`,
-          lat: "25.2925",
-          lng: "51.5321",
+          lat: location?.lat.toString(),
+          lng: location?.lng.toString(),
         },
       })
       .then((res) => {
         setBusinessList(res.data.data.results);
+        businessListStore.setBusinessList(res.data.data.results);
         setLoading(false);
       });
   };
 
+  const getUserCurrentLocation = () => {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const loc = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      };
+      currentLocation.setLocation(loc);
+      getBusinessPlaces(loc);
+    });
+  };
+
   useEffect(() => {
-    getBusinessPlaces();
+    getUserCurrentLocation();
   }, [category]);
 
-  console.log(category);
+  console.log(`place count ${placeCount}`);
+  console.log(businessListStore.list.length);
+  console.log(
+    placeCount === 0 ? 0 : placeCount - 4,
+    businessListStore.list.length < placeCount
+      ? businessListStore.list.length
+      : placeCount
+  );
+
+  console.log(`category ${category}`);
 
   return (
     <div>
@@ -59,17 +93,27 @@ const BusinessList = () => {
       </div>
 
       {/* business item */}
-      {loading ? (
-        <>
-          <div className="h-full w-full flex items-center justify-center mt-10">
-            <PuffLoader size={45} color="#f50057" />
-          </div>
-        </>
-      ) : (
-        businessList
-          .slice(placeCount === 0 ? 0 : placeCount - 4, placeCount)
-          .map((item, index) => <BusinessItem key={index} business={item} />)
-      )}
+
+      {businessListStore.list
+        .slice(
+          placeCount === 0 ? 0 : placeCount - 4,
+          businessListStore.list.length < placeCount
+            ? businessListStore.list.length
+            : placeCount
+        )
+        .map((item: Result, index) =>
+          loading ? (
+            <Shimmer key={index} />
+          ) : (
+            <div
+              key={index}
+              className="cursor-pointer"
+              onClick={() => selectedBusinessStore.setSelectedBusiness(item)}
+            >
+              <BusinessItem business={item} />
+            </div>
+          )
+        )}
     </div>
   );
 };

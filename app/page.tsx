@@ -5,6 +5,7 @@ import SideBar from "@/components/SideBar";
 import Image from "next/image";
 import axios from "axios";
 import getNearbyPlaces from "./actions/getNearbyPlaces";
+import Map from "@/components/Map";
 
 export default async function Home() {
   return (
@@ -16,7 +17,9 @@ export default async function Home() {
           <CategoryList />
           <BusinessList />
         </div>
-        <div>Map</div>
+        <div>
+          <Map />
+        </div>
       </div>
     </main>
   );
